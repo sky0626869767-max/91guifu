@@ -5,8 +5,15 @@ import {
   X, ArrowLeft, Gift, Tv, Calendar, Zap, BookOpen, Film,
   Crown, Settings, ChevronRight, ChevronDown, ChevronUp,
   Eye, Clock, Mic, Video, Wand2, Brush, Headphones,
-  Check, Plus, Star, Bell, Cpu, Layers, Image as ImageIcon,
+  Check, Plus, Star, Bell, Cpu, Layers, Image as ImageIcon, Hand,
 } from "lucide-react";
+import { ImmersiveVideoPlayer } from "./components/ImmersiveVideoPlayer";
+import { EnhancedVideoCard } from "./components/EnhancedVideoCard";
+import { GestureTutorial } from "./components/GestureTutorial";
+import { FluidBackground } from "./components/FluidBackground";
+import { MouseLightEffect } from "./components/MouseLightEffect";
+import { Tilt3DCard } from "./components/FlipCard3D";
+import { GradientGlassCard } from "./components/GlassmorphicCard";
 
 // ── Types ──────────────────────────────────────────────────────────────
 type TabId = "home" | "community" | "anime" | "discovery" | "profile";
@@ -96,6 +103,20 @@ const NOVELS = [
 const SHORT_VID_THUMBS = ["1529626455594-4ff0802cfb7e","1488426862026-3ee34a7d66df","1524504388940-b1c1722653e8","1502823403499-6ccfcf4fb453","1520813792240-56fc4a3765a7","1570295999919-56ceb5ecca61","1438761681033-6461ffad8d80","1534528741775-53994a69daeb"];
 const SHORT_VID_NAMES = ["梦幻姐姐","樱花妹纸","初夏甜心","深夜精灵","娜娜酱","冰冰爱你","小猫咪","苹果甜心"];
 const SHORT_VID_DURS = ["0:32","1:15","0:48","2:03","0:55","1:28","0:41","1:53"];
+
+// 沉浸式短视频数据
+const IMMERSIVE_VIDEOS = SHORT_VID_THUMBS.map((thumb, i) => ({
+  id: `sv${i}`,
+  thumb,
+  author: SHORT_VID_NAMES[i],
+  avatar: thumb,
+  caption: VIDEO_DATA[i % VIDEO_DATA.length].title,
+  likes: ["8.2万", "12.5万", "6.8万", "19.3万", "5.4万", "9.7万", "15.1万", "11.2万"][i],
+  comments: ["1.2千", "2.3千", "876", "3.5千", "654", "1.8千", "2.9千", "1.4千"][i],
+  shares: ["432", "876", "234", "1.2千", "189", "542", "978", "654"][i],
+  views: VIDEO_DATA[i % VIDEO_DATA.length].views,
+  music: ["私人定制原声", "学院派BGM", "午夜魅惑", "邻家女神主题曲", "黑丝诱惑", "清纯系原声", "白领OL", "夜色撩人"][i],
+}));
 
 // ── Utility Components ────────────────────────────────────────────────
 function VipBadge() {
@@ -192,22 +213,84 @@ function AdGrid() {
 // ── Diamond Area (金刚区) ──────────────────────────────────────────────
 function DiamondArea({ onOpen }: { onOpen: (id: OverlayId) => void }) {
   const items = [
-    { id: "blacktech" as OverlayId, icon: <Cpu className="w-6 h-6" />, label: "黑科技", from: "#7c3aed", to: "#4c1d95" },
-    { id: "checkin" as OverlayId, icon: <Gift className="w-6 h-6" />, label: "签到", from: "#e8175d", to: "#9d174d" },
-    { id: "live" as OverlayId, icon: <Tv className="w-6 h-6" />, label: "直播", from: "#dc2626", to: "#991b1b" },
-    { id: "date" as OverlayId, icon: <Calendar className="w-6 h-6" />, label: "约会", from: "#ea580c", to: "#c2410c" },
+    { id: "blacktech" as OverlayId, icon: <Cpu className="w-6 h-6" />, label: "黑科技", from: "#7c3aed", to: "#4c1d95", badge: "NEW" },
+    { id: "checkin" as OverlayId, icon: <Gift className="w-6 h-6" />, label: "签到", from: "#e8175d", to: "#9d174d", badge: null },
+    { id: "live" as OverlayId, icon: <Tv className="w-6 h-6" />, label: "直播", from: "#dc2626", to: "#991b1b", badge: "HOT" },
+    { id: "date" as OverlayId, icon: <Calendar className="w-6 h-6" />, label: "约会", from: "#ea580c", to: "#c2410c", badge: null },
   ];
+
+  const vibrate = (pattern: number | number[]) => {
+    if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-4 gap-2 px-3 mb-4">
-      {items.map(item => (
-        <button key={item.id} onClick={() => onOpen(item.id)} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${item.from}, ${item.to})` }}>
-            {item.icon}
-          </div>
-          <span className="text-xs text-foreground font-medium">{item.label}</span>
-        </button>
-      ))}
-    </div>
+    <>
+      <style>{`
+        @keyframes diamondFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+
+        @keyframes diamondPulse {
+          0%, 100% { box-shadow: 0 4px 20px rgba(232, 23, 93, 0.3); }
+          50% { box-shadow: 0 6px 30px rgba(232, 23, 93, 0.6); }
+        }
+
+        @keyframes badgePulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .diamond-item {
+          animation: diamondFloat 3s ease-in-out infinite;
+        }
+
+        .diamond-item:nth-child(1) { animation-delay: 0s; }
+        .diamond-item:nth-child(2) { animation-delay: 0.2s; }
+        .diamond-item:nth-child(3) { animation-delay: 0.4s; }
+        .diamond-item:nth-child(4) { animation-delay: 0.6s; }
+
+        .diamond-icon {
+          animation: diamondPulse 2s ease-in-out infinite;
+        }
+
+        .badge-pulse {
+          animation: badgePulse 1.5s ease-in-out infinite;
+        }
+      `}</style>
+      <div className="grid grid-cols-4 gap-2 px-3 mb-4">
+        {items.map((item, idx) => (
+          <Tilt3DCard key={item.id} className="diamond-item">
+            <button
+              onClick={() => {
+                vibrate(10);
+                onOpen(item.id);
+              }}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-all hover:scale-105 w-full"
+            >
+              <div className="relative">
+                <div
+                  className="diamond-icon w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg"
+                  style={{ background: `linear-gradient(135deg, ${item.from}, ${item.to})` }}
+                >
+                  {item.icon}
+                </div>
+                {item.badge && (
+                  <div className="absolute -top-1 -right-1 badge-pulse">
+                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-amber-400 text-black shadow-sm">
+                      {item.badge}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <span className="text-xs text-foreground font-medium">{item.label}</span>
+            </button>
+          </Tilt3DCard>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -429,9 +512,11 @@ function CommunityTab() {
               <SectionHeader title="热门话题" />
               <div className="grid grid-cols-2 gap-2">
                 {["#制服诱惑","#黑丝写真","#JK日常","#深夜福利","#私房相册","#邻家女孩"].map(t => (
-                  <button key={t} className="bg-card border border-border rounded-xl px-3 py-2 text-left">
-                    <span className="text-xs text-primary font-semibold">{t}</span>
-                  </button>
+                  <Tilt3DCard key={t} intensity={8}>
+                    <GradientGlassCard className="rounded-xl px-3 py-2 text-left cursor-pointer hover:scale-105 transition-transform">
+                      <span className="text-xs text-primary font-semibold">{t}</span>
+                    </GradientGlassCard>
+                  </Tilt3DCard>
                 ))}
               </div>
             </div>
@@ -530,73 +615,19 @@ function AnimeTab() {
   );
 }
 
-// ── Discovery Tab ─────────────────────────────────────────────────────
+// ── Discovery Tab (沉浸式短视频) ──────────────────────────────────────
 function DiscoveryTab() {
-  const [view, setView] = useState<"list" | "video">("list");
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [liked, setLiked] = useState<Record<number, boolean>>({});
-  const [saved, setSaved] = useState<Record<number, boolean>>({});
+  const [view, setView] = useState<"list" | "immersive">("list");
+  const [startIndex, setStartIndex] = useState(0);
   const [filter, setFilter] = useState("推荐");
 
-  if (view === "video") {
-    const thumb = SHORT_VID_THUMBS[currentIdx];
-    const name = SHORT_VID_NAMES[currentIdx];
-    const video = VIDEO_DATA[currentIdx % VIDEO_DATA.length];
+  if (view === "immersive") {
     return (
-      <div className="relative flex-1 bg-black overflow-hidden flex flex-col">
-        <img src={`https://images.unsplash.com/photo-${thumb}?w=400&h=700&fit=crop&auto=format`} alt={name} className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30" />
-        <button onClick={() => setView("list")} className="absolute top-4 left-3 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
-          <X className="w-4 h-4 text-white" />
-        </button>
-        <div className="absolute right-3 flex flex-col items-center gap-5 z-10" style={{ bottom: 120 }}>
-          <div className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-primary shadow-lg">
-              <img src={`https://images.unsplash.com/photo-${thumb}?w=44&h=44&fit=crop&auto=format`} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center -mt-2">
-              <Plus className="w-2.5 h-2.5 text-white" />
-            </div>
-          </div>
-          <button onClick={() => setLiked(l => ({ ...l, [currentIdx]: !l[currentIdx] }))} className="flex flex-col items-center gap-0.5">
-            <Heart className={`w-7 h-7 ${liked[currentIdx] ? "fill-primary text-primary" : "text-white"}`} />
-            <span className="text-white text-[11px]">{video.views}</span>
-          </button>
-          <button onClick={() => setSaved(s => ({ ...s, [currentIdx]: !s[currentIdx] }))} className="flex flex-col items-center gap-0.5">
-            <Bookmark className={`w-7 h-7 ${saved[currentIdx] ? "fill-primary text-primary" : "text-white"}`} />
-            <span className="text-white text-[11px]">收藏</span>
-          </button>
-          <button className="flex flex-col items-center gap-0.5">
-            <MessageCircle className="w-7 h-7 text-white" />
-            <span className="text-white text-[11px]">评论</span>
-          </button>
-          <button className="flex flex-col items-center gap-0.5">
-            <Share2 className="w-7 h-7 text-white" />
-            <span className="text-white text-[11px]">分享</span>
-          </button>
-        </div>
-        <div className="absolute left-3 right-16 z-10" style={{ bottom: 60 }}>
-          <p className="text-white font-bold mb-1">@{name}</p>
-          <p className="text-white/80 text-sm line-clamp-2">{video.title}</p>
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {["VIP专享","福利","精品"].map(t => <span key={t} className="text-[10px] text-primary/90 border border-primary/40 px-1.5 py-0.5 rounded-full">#{t}</span>)}
-          </div>
-          <button className="mt-2.5 px-5 py-1.5 bg-gradient-to-r from-primary to-accent text-white text-xs rounded-full font-bold shadow-lg">立即充值解锁</button>
-        </div>
-        <div className="absolute bottom-4 left-3 flex gap-1.5 z-10">
-          {SHORT_VID_THUMBS.map((_, i) => (
-            <button key={i} onClick={() => setCurrentIdx(i)} className="transition-all rounded-full bg-white/40" style={{ width: i === currentIdx ? 16 : 6, height: 6, backgroundColor: i === currentIdx ? "#e8175d" : "rgba(255,255,255,0.4)" }} />
-          ))}
-        </div>
-        <div className="absolute bottom-4 right-3 flex gap-2 z-10">
-          <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
-            <ChevronUp className="w-4 h-4 text-white" />
-          </button>
-          <button onClick={() => setCurrentIdx(i => Math.min(SHORT_VID_THUMBS.length - 1, i + 1))} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
-            <ChevronDown className="w-4 h-4 text-white" />
-          </button>
-        </div>
-      </div>
+      <ImmersiveVideoPlayer
+        videos={IMMERSIVE_VIDEOS}
+        initialIndex={startIndex}
+        onClose={() => setView("list")}
+      />
     );
   }
 
@@ -604,24 +635,70 @@ function DiscoveryTab() {
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex-shrink-0 px-4 py-2.5 flex gap-4 border-b border-border">
         {["推荐","最新","最热"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`text-sm font-semibold pb-0.5 border-b-2 transition-colors ${filter === f ? "text-primary border-primary" : "text-muted-foreground border-transparent"}`}>{f}</button>
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`text-sm font-semibold pb-0.5 border-b-2 transition-colors ${
+              filter === f ? "text-primary border-primary" : "text-muted-foreground border-transparent"
+            }`}
+          >
+            {f}
+          </button>
         ))}
       </div>
+
       <div className="flex-1 overflow-y-auto p-3" style={{ scrollbarWidth: "none" }}>
+        <GradientGlassCard className="mb-4 p-3 rounded-2xl">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-foreground">全新沉浸式体验</p>
+              <p className="text-[10px] text-muted-foreground">点击任意视频，上下滑动切换，双击点赞，长按加速</p>
+            </div>
+          </div>
+        </GradientGlassCard>
+
         <div className="grid grid-cols-2 gap-2">
           {SHORT_VID_THUMBS.map((thumb, i) => (
-            <button key={i} onClick={() => { setCurrentIdx(i); setView("video"); }} className="text-left active:scale-95 transition-transform">
+            <button
+              key={i}
+              onClick={() => {
+                setStartIndex(i);
+                setView("immersive");
+              }}
+              className="text-left active:scale-95 transition-transform group"
+            >
               <div className="relative rounded-2xl overflow-hidden bg-muted mb-1" style={{ aspectRatio: "9/16" }}>
-                <img src={`https://images.unsplash.com/photo-${thumb}?w=180&h=320&fit=crop&auto=format`} alt={SHORT_VID_NAMES[i]} className="w-full h-full object-cover" />
+                <img
+                  src={`https://images.unsplash.com/photo-${thumb}?w=180&h=320&fit=crop&auto=format`}
+                  alt={SHORT_VID_NAMES[i]}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-primary/80 flex items-center justify-center">
+
+                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-primary/80 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                 </div>
+
+                {i < 3 && (
+                  <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full px-1.5 py-0.5">
+                    <Flame className="w-2.5 h-2.5 text-white" />
+                    <span className="text-[9px] text-white font-bold">HOT</span>
+                  </div>
+                )}
+
                 <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-xs font-medium line-clamp-2 leading-tight">@{SHORT_VID_NAMES[i]}</p>
-                  <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-white text-xs font-medium line-clamp-2 leading-tight mb-1">
+                    @{SHORT_VID_NAMES[i]}
+                  </p>
+                  <div className="flex items-center justify-between">
                     <span className="text-white/60 text-[10px]">{SHORT_VID_DURS[i]}</span>
-                    <span className="text-white/60 text-[10px] flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{VIDEO_DATA[i % VIDEO_DATA.length].views}</span>
+                    <span className="text-white/60 text-[10px] flex items-center gap-0.5">
+                      <Eye className="w-2.5 h-2.5" />
+                      {VIDEO_DATA[i % VIDEO_DATA.length].views}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -635,26 +712,27 @@ function DiscoveryTab() {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────
-function ProfileTab() {
+function ProfileTab({ onShowTutorial }: { onShowTutorial?: () => void }) {
   const menuSections = [
     {
       title: "互动与关系",
       items: [
-        { icon: <Bell className="w-4 h-4" />, label: "消息" },
-        { icon: <Bookmark className="w-4 h-4" />, label: "我的收藏" },
-        { icon: <Film className="w-4 h-4" />, label: "我的购买" },
-        { icon: <Users className="w-4 h-4" />, label: "我的关注" },
+        { icon: <Bell className="w-4 h-4" />, label: "消息", action: null },
+        { icon: <Bookmark className="w-4 h-4" />, label: "我的收藏", action: null },
+        { icon: <Film className="w-4 h-4" />, label: "我的购买", action: null },
+        { icon: <Users className="w-4 h-4" />, label: "我的关注", action: null },
       ]
     },
     {
       title: "工具与服务",
       items: [
-        { icon: <Share2 className="w-4 h-4" />, label: "分享邀请" },
-        { icon: <Headphones className="w-4 h-4" />, label: "官方客服" },
-        { icon: <Users className="w-4 h-4" />, label: "官方交流群" },
-        { icon: <Gift className="w-4 h-4" />, label: "填写邀请码" },
-        { icon: <Star className="w-4 h-4" />, label: "填写兑换码" },
-        { icon: <Settings className="w-4 h-4" />, label: "设置" },
+        { icon: <Share2 className="w-4 h-4" />, label: "分享邀请", action: null },
+        { icon: <Hand className="w-4 h-4" />, label: "手势教程", action: () => onShowTutorial?.() },
+        { icon: <Headphones className="w-4 h-4" />, label: "官方客服", action: null },
+        { icon: <Users className="w-4 h-4" />, label: "官方交流群", action: null },
+        { icon: <Gift className="w-4 h-4" />, label: "填写邀请码", action: null },
+        { icon: <Star className="w-4 h-4" />, label: "填写兑换码", action: null },
+        { icon: <Settings className="w-4 h-4" />, label: "设置", action: null },
       ]
     },
   ];
@@ -675,22 +753,26 @@ function ProfileTab() {
       </div>
       <div className="mx-3 mb-4 p-4 bg-card rounded-2xl border border-border">
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center gap-3 p-3 rounded-xl border border-primary/30" style={{ background: "linear-gradient(135deg, rgba(232,23,93,0.15), rgba(232,23,93,0.05))" }}>
-            <Crown className="w-6 h-6 text-yellow-400" />
-            <div className="text-left flex-1">
-              <p className="text-[10px] text-muted-foreground">会员充值</p>
-              <p className="text-sm font-bold text-foreground">开通VIP</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/30" style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))" }}>
-            <Zap className="w-6 h-6 text-amber-400" />
-            <div className="text-left flex-1">
-              <p className="text-[10px] text-muted-foreground">金币充值</p>
-              <p className="text-sm font-bold text-foreground">0 金币</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </button>
+          <Tilt3DCard intensity={10}>
+            <GradientGlassCard className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:scale-105 transition-transform">
+              <Crown className="w-6 h-6 text-yellow-400" />
+              <div className="text-left flex-1">
+                <p className="text-[10px] text-muted-foreground">会员充值</p>
+                <p className="text-sm font-bold text-foreground">开通VIP</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </GradientGlassCard>
+          </Tilt3DCard>
+          <Tilt3DCard intensity={10}>
+            <GradientGlassCard className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:scale-105 transition-transform">
+              <Zap className="w-6 h-6 text-amber-400" />
+              <div className="text-left flex-1">
+                <p className="text-[10px] text-muted-foreground">金币充值</p>
+                <p className="text-sm font-bold text-foreground">0 金币</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </GradientGlassCard>
+          </Tilt3DCard>
         </div>
       </div>
       {menuSections.map(section => (
@@ -699,9 +781,18 @@ function ProfileTab() {
             <p className="text-[11px] text-muted-foreground font-medium">{section.title}</p>
           </div>
           {section.items.map((item, i) => (
-            <button key={item.label} className={`w-full flex items-center gap-3 px-4 py-3 active:bg-muted/30 transition-colors ${i !== section.items.length - 1 ? "border-b border-border/20" : ""}`}>
+            <button
+              key={item.label}
+              onClick={() => item.action?.()}
+              className={`w-full flex items-center gap-3 px-4 py-3 active:bg-muted/30 transition-colors ${i !== section.items.length - 1 ? "border-b border-border/20" : ""}`}
+            >
               <span className="text-primary">{item.icon}</span>
               <span className="text-sm text-foreground flex-1 text-left">{item.label}</span>
+              {item.label === "手势教程" && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  NEW
+                </span>
+              )}
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           ))}
@@ -910,12 +1001,12 @@ function CheckInOverlay({ onClose }: { onClose: () => void }) {
         <button onClick={onClose}><ArrowLeft className="w-5 h-5 text-foreground" /></button>
         <h2 className="text-base font-bold text-foreground">每日签到</h2>
       </div>
-      <div className="m-4 p-5 rounded-2xl border border-primary/30 text-center" style={{ background: "linear-gradient(135deg, rgba(232,23,93,0.15), rgba(139,47,201,0.1))" }}>
+      <GradientGlassCard className="m-4 p-5 rounded-2xl text-center">
         <p className="text-muted-foreground text-xs mb-1">当前积分</p>
         <p className="text-5xl font-black text-primary" style={{ fontFamily: "'Noto Serif SC', serif" }}>320</p>
         <p className="text-muted-foreground text-xs mt-1">积分可兑换VIP会员</p>
-      </div>
-      <div className="mx-4 mb-4 p-4 bg-card rounded-2xl border border-border">
+      </GradientGlassCard>
+      <GradientGlassCard className="mx-4 mb-4 p-4 rounded-2xl">
         <p className="text-sm font-bold text-foreground mb-3">每周签到区</p>
         <div className="grid grid-cols-7 gap-1">
           {days.map((d, i) => (
@@ -930,8 +1021,8 @@ function CheckInOverlay({ onClose }: { onClose: () => void }) {
         <button onClick={() => setChecked(c => c.map((v, i) => i === todayIdx ? true : v))} className="w-full mt-4 py-2.5 rounded-xl text-white text-sm font-bold" style={{ background: "linear-gradient(90deg, #e8175d, #8b2fc9)" }}>
           {checked[todayIdx] ? "今日已签到 ✓" : "立即签到 +10积分"}
         </button>
-      </div>
-      <div className="mx-4 mb-4 p-4 bg-card rounded-2xl border border-border">
+      </GradientGlassCard>
+      <GradientGlassCard className="mx-4 mb-4 p-4 rounded-2xl">
         <p className="text-sm font-bold text-foreground mb-3">福利任务区</p>
         {[["每日登录","+5积分",true],["评论/回复","+3积分",false],["邀请新用户","+50积分",false],["每天发帖","+8积分",false]].map(([task, reward, done], i) => (
           <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
@@ -944,8 +1035,8 @@ function CheckInOverlay({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         ))}
-      </div>
-      <div className="mx-4 mb-4 p-4 bg-card rounded-2xl border border-border">
+      </GradientGlassCard>
+      <GradientGlassCard className="mx-4 mb-4 p-4 rounded-2xl">
         <p className="text-sm font-bold text-foreground mb-3">积分兑换区</p>
         {[[100,"VIP 1天","👑"],[200,"VIP 2天","👑"],[500,"VIP 7天","💎"],[1000,"VIP 30天","🔱"]].map(([pts, vip, icon]) => (
           <div key={String(vip)} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
@@ -957,7 +1048,7 @@ function CheckInOverlay({ onClose }: { onClose: () => void }) {
             <button className="px-3 py-1 rounded-full border border-primary text-primary text-xs font-semibold">兑换</button>
           </div>
         ))}
-      </div>
+      </GradientGlassCard>
       <div className="h-4" />
     </div>
   );
@@ -1194,12 +1285,21 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [overlay, setOverlay] = useState<OverlayId | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    const hasSeenTutorial = localStorage.getItem("hasSeenGestureTutorial");
+    return !hasSeenTutorial;
+  });
 
   const handleVideoClick = (v: VideoData) => {
     setSelectedVideo(v);
     setOverlay("videoPlayer");
   };
   const closeOverlay = () => { setOverlay(null); setSelectedVideo(null); };
+
+  const handleCloseTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem("hasSeenGestureTutorial", "true");
+  };
 
   return (
     <>
@@ -1229,12 +1329,11 @@ export default function App() {
           fontFamily: "'Noto Sans SC', sans-serif",
         }}
       >
-        {/* Ambient mesh glow */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full blur-3xl" style={{ background: "rgba(232,23,93,0.06)" }} />
-          <div className="absolute -top-10 right-0 w-40 h-40 rounded-full blur-2xl" style={{ background: "rgba(139,47,201,0.05)" }} />
-          <div className="absolute bottom-24 left-1/3 w-48 h-48 rounded-full blur-3xl" style={{ background: "rgba(232,23,93,0.04)" }} />
-        </div>
+        {/* 流体渐变背景 */}
+        <FluidBackground />
+
+        {/* 鼠标跟随光效 */}
+        <MouseLightEffect />
 
         {/* Header — hidden on discovery video mode full-screen handled internally */}
         {activeTab !== "discovery" && (
@@ -1247,7 +1346,7 @@ export default function App() {
           {activeTab === "community" && <CommunityTab />}
           {activeTab === "anime" && <AnimeTab />}
           {activeTab === "discovery" && <DiscoveryTab />}
-          {activeTab === "profile" && <ProfileTab />}
+          {activeTab === "profile" && <ProfileTab onShowTutorial={() => setShowTutorial(true)} />}
         </div>
 
         {/* Bottom nav */}
@@ -1261,6 +1360,9 @@ export default function App() {
         {overlay === "blacktech" && <BlackTechOverlay onClose={closeOverlay} />}
         {overlay === "live" && <LiveOverlay onClose={closeOverlay} />}
         {overlay === "date" && <DateOverlay onClose={closeOverlay} />}
+
+        {/* 手势教程 */}
+        {showTutorial && <GestureTutorial onClose={handleCloseTutorial} />}
       </div>
     </>
   );
